@@ -10,63 +10,83 @@ forecast_function = function(series, horizon){
   library(lubridate) #to work with dates, times
   library(zoo)
 
-  f_list = list()
+f_list = list()
   
   #naive forecasts
-  f_naive = naive(series_train, horizon); 
-  f_naive_summary = summary(f_naive); 
-  f_naive_autoplot = autoplot(f_naive); 
+  f_naive = naive(series_train, horizon) 
+  f_naive_summary = summary(f_naive)
+  f_naive_autoplot = autoplot(f_naive) + geom_smooth() + geom_line(size=1.0) + labs(title="Naive forecasts", y = "USD, m", x = NULL)
   f_naive_residuals = checkresiduals(f_naive)
   f_naive_accuracy = accuracy(f_naive, series_test)
-  f_list = list(f_naive, f_naive_summary, f_naive_autoplot, f_naive_residuals, f_naive_accuracy)
   
   #naive forecasts with seasonality
-  f_snaive = snaive(series_train, horizon); 
-  f_snaive_summary = summary(f_snaive); 
-  f_snaive_autoplot = autoplot(f_snaive); 
+  f_snaive = snaive(series_train, horizon) 
+  f_snaive_summary = summary(f_snaive)
+  f_snaive_autoplot = autoplot(f_snaive) + geom_smooth() + geom_line(size=1.0) + labs(title="Naive forecasts with seasonality", y = "USD, m", x = NULL)
   f_snaive_residuals = checkresiduals(f_snaive)
   f_snaive_accuracy = accuracy(f_snaive, series_test)
-  f_list = list(f_list,
-                f_snaive, f_snaive_summary, f_snaive_autoplot, f_snaive_residuals, f_snaive_accuracy)
   
   #drift forecasts
-  f_rwf = rwf(series_train, drift = TRUE, horizon); 
-  f_rwf_summary = summary(f_rwf); 
-  f_rwf_autoplot = autoplot(f_rwf); 
+  f_rwf = rwf(series_train, drift = TRUE, horizon)
+  f_rwf_summary = summary(f_rwf)
+  f_rwf_autoplot = autoplot(f_rwf) + geom_smooth() + geom_line(size=1.0) + labs(title="Drift forecasts", y = "USD, m", x = NULL)
   f_rwf_residuals = checkresiduals(f_rwf)
   f_rwf_accuracy = accuracy(f_rwf, series_test)
-  f_list = list(f_list,
-                f_rwf, f_rwf_summary, f_rwf_autoplot, f_rwf_residuals, f_rwf_accuracy)
   
   #HW single exponential model (with level only)
   f_HW_single_fit = HoltWinters(series_train, beta=FALSE, gamma=FALSE)
-  f_HW_single = forecast(f_HW_single_fit, horizon); 
-  f_HW_single_summary = summary(f_HW_single); 
-  f_HW_single_autoplot = autoplot(f_HW_single); 
+  f_HW_single = forecast(f_HW_single_fit, horizon) 
+  f_HW_single_summary = summary(f_HW_single)
+  f_HW_single_autoplot = autoplot(f_HW_single) + geom_smooth() + geom_line(size=1.0) + labs(title="HW single exponential model (with level only)", y = "USD, m", x = NULL)
   f_HW_single_residuals = checkresiduals(f_HW_single)
   f_HW_single_accuracy = accuracy(f_HW_single, series_test)
-  f_list = list(f_list,
-                f_HW_single, f_HW_single_summary, f_HW_single_autoplot, f_HW_single_residuals, f_HW_single_accuracy)
   
   #HW double exponential model (level and trend)
   f_HW_double_fit = HoltWinters(series_train, gamma=FALSE)
-  f_HW_double = forecast(f_HW_double_fit, horizon); 
-  f_HW_double_summary = summary(f_HW_double); 
-  f_HW_double_autoplot = autoplot(f_HW_double); 
+  f_HW_double = forecast(f_HW_double_fit, horizon)
+  f_HW_double_summary = summary(f_HW_double)
+  f_HW_double_autoplot = autoplot(f_HW_double) + geom_smooth() + geom_line(size=1.0) + labs(title="HW double exponential model (level and trend)", y = "USD, m", x = NULL)
   f_HW_double_residuals = checkresiduals(f_HW_double)
   f_HW_double_accuracy = accuracy(f_HW_double, series_test)
-  f_list = list(f_list,
-                f_HW_double, f_HW_double_summary, f_HW_double_autoplot, f_HW_double_residuals, f_HW_double_accuracy)
   
   #HW triple exponential model (level, trend and seasonality)
   f_HW_triple_fit = HoltWinters(series_train)
-  f_HW_triple = forecast(f_HW_triple_fit, horizon); 
-  f_HW_triple_summary = summary(f_HW_triple); 
-  f_HW_triple_autoplot = autoplot(f_HW_triple); 
+  f_HW_triple = forecast(f_HW_triple_fit, horizon)
+  f_HW_triple_summary = summary(f_HW_triple)
+  f_HW_triple_autoplot = autoplot(f_HW_triple) + geom_smooth() + geom_line(size=1.0) + labs(title="HW triple exponential model (level, trend and seasonality)", y = "USD, m", x = NULL)
   f_HW_triple_residuals = checkresiduals(f_HW_triple)
   f_HW_triple_accuracy = accuracy(f_HW_triple, series_test)
-  f_list = list(f_list,
-                f_HW_triple, f_HW_triple_summary, f_HW_triple_autoplot, f_HW_triple_residuals, f_HW_triple_accuracy)
+  
+  f_list = list("naive_summary"=f_naive_summary, 
+                "naive_autoplot"=f_naive_autoplot, 
+                "naive_residuals"=f_naive_residuals, 
+                "naive_accuracy"=f_naive_accuracy,
+                
+                "snaive_summary"=f_snaive_summary, 
+                "snaive_autoplot"=f_snaive_autoplot, 
+                "snaive_residuals"=f_snaive_residuals, 
+                "snaive_accuracy"=f_snaive_accuracy, 
+                
+                "drift_summary"= f_rwf_summary, 
+                "drift_autoplot"=f_rwf_autoplot, 
+                "drift_residuals"=f_rwf_residuals, 
+                "drift_accuracy"=f_rwf_accuracy,
+                
+                "HW_single_summary"=f_HW_single_summary, 
+                "HW_single_autoplot"=f_HW_single_autoplot, 
+                "HW_single_residuals"=f_HW_single_residuals, 
+                "HW_single_accuracy"=f_HW_single_accuracy,
+                
+                "HW_double_summary"=f_HW_double_summary, 
+                "HW_double_autoplot"=f_HW_double_autoplot, 
+                "HW_double_residuals"=f_HW_double_residuals, 
+                "HW_double_accuracy"=f_HW_double_accuracy,
+                
+                "HW_triple_summary"=f_HW_triple_summary, 
+                "HW_triple_autoplot"=f_HW_triple_autoplot, 
+                "HW_triple_residuals"=f_HW_triple_residuals, 
+                "HW_triple_accuracy)"=f_HW_triple_accuracy)
   
   return(f_list)
 }
+
