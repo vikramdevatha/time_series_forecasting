@@ -1,5 +1,15 @@
 forecast_function = function(series, horizon){
   
+  #for time series and seasonality
+  library("forecast")
+  library("fpp2")
+  library(readxl)
+  
+  #for moving average
+  library(tidyverse) #data manipulation and visualization
+  library(lubridate) #to work with dates, times
+  library(zoo)
+
   f_list = list()
   
   #naive forecasts
