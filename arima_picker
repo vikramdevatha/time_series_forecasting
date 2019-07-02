@@ -1,17 +1,24 @@
+
 #initiate a df
 df = data.frame(a=NA, b=NA, c=NA, d=NA, e=NA, f=NA,
                 training=NA,
                 test=NA,
+                diff=NA,
                 bic = NA)
 #df row counter
 i=1
 
+#make training and test 
+redemptions_ts = ts(mydata$redemptions, start = c(2002, 1), frequency = 12)
+redemptions_train = window(redemptions_ts, end = c(2017, 12))
+redemptions_test = window(redemptions_ts, start = c(2018, 1))
+
 system.time(
   for (a in seq(0, 4)){
-    for (b in seq(0, 4)){
+    for (b in seq(0, 1)){
       for (c in seq(0, 4)){
         for (d in seq(0, 4)){
-          for (e in seq(0, 4)){
+          for (e in seq(0, 1)){
             for (f in seq(0, 4)){
               
               redemptions_train_arima = try(Arima(redemptions_train, order=c(a,b,c), seasonal=c(d,e,f)))
@@ -30,6 +37,7 @@ system.time(
               df[i,'f']=f
               df[i,'training']=training_rmse
               df[i,'test']=test_rmse
+              df[i, 'diff']=training_rmse-test_rmse
               df[i,'bic']=bic
               
               i=i+1 #increment the row
