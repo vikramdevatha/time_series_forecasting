@@ -1,0 +1,51 @@
+#initiate a df
+df = data.frame(a=NA, b=NA, c=NA, d=NA, e=NA, f=NA,
+                training=NA,
+                test=NA,
+                bic = NA)
+#df row counter
+i=1
+
+system.time(
+  for (a in seq(0, 4)){
+    for (b in seq(0, 4)){
+      for (c in seq(0, 4)){
+        for (d in seq(0, 4)){
+          for (e in seq(0, 4)){
+            for (f in seq(0, 4)){
+              
+              redemptions_train_arima = try(Arima(redemptions_train, order=c(a,b,c), seasonal=c(d,e,f)))
+              f_redemptions_train_arima = try(redemptions_train_arima %>% forecast(h=6))
+              z = try(accuracy(f_redemptions_train_arima, redemptions_test))
+              training_rmse = try(z[3])
+              test_rmse = try(z[4])
+              bic = try(redemptions_train_arima[16])
+              
+              #write to the df
+              df[i,'a']=a
+              df[i,'b']=b
+              df[i,'c']=c
+              df[i,'d']=d
+              df[i,'e']=e
+              df[i,'f']=f
+              df[i,'training']=training_rmse
+              df[i,'test']=test_rmse
+              df[i,'bic']=bic
+              
+              i=i+1 #increment the row
+              
+              #reset the variables
+              redemptions_train_arima=NULL 
+              f_redemptions_train_arima=NULL
+              z=NULL
+              training_rmse=NULL
+              test_rmse=NULL
+              bic=NULL
+              
+            }
+          }
+        }
+      }
+    }
+  }
+)
