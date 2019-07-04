@@ -14,12 +14,12 @@ redemptions_train = window(redemptions_ts, end = c(2017, 12))
 redemptions_test = window(redemptions_ts, start = c(2018, 1))
 
 system.time(
-  for (a in seq(0, 4)){
+  for (a in seq(0, 2)){
     for (b in seq(0, 1)){
-      for (c in seq(0, 4)){
-        for (d in seq(0, 4)){
+      for (c in seq(0, 2)){
+        for (d in seq(0, 2)){
           for (e in seq(0, 1)){
-            for (f in seq(0, 4)){
+            for (f in seq(0, 2)){
               
               redemptions_train_arima = try(Arima(redemptions_train, order=c(a,b,c), seasonal=c(d,e,f)))
               f_redemptions_train_arima = try(redemptions_train_arima %>% forecast(h=6))
@@ -57,3 +57,17 @@ system.time(
     }
   }
 )
+  
+df_sorted = df[order(df$bic, decreasing="False"),]
+p=df_sorted[1,"a"]
+d=df_sorted[1,"b"]
+q=df_sorted[1,"c"]
+P=df_sorted[1,"d"]
+D=df_sorted[1,"e"]
+Q=df_sorted[1,"f"]
+
+p;d;q;P;D;Q
+df_sorted[1,"training"]
+df_sorted[1,"test"]
+df_sorted[1,"bic"]
+head(df_sorted)
