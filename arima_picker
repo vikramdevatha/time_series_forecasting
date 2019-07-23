@@ -1,73 +1,69 @@
-
-#initiate a df
-df = data.frame(a=NA, b=NA, c=NA, d=NA, e=NA, f=NA,
-                training=NA,
-                test=NA,
-                diff=NA,
-                bic = NA)
-#df row counter
-i=1
-
-#make training and test 
-redemptions_ts = ts(mydata$redemptions, start = c(2002, 1), frequency = 12)
-redemptions_train = window(redemptions_ts, end = c(2017, 12))
-redemptions_test = window(redemptions_ts, start = c(2018, 1))
-
-system.time(
-  for (a in seq(0, 2)){
-    for (b in seq(0, 1)){
-      for (c in seq(0, 2)){
-        for (d in seq(0, 2)){
-          for (e in seq(0, 1)){
-            for (f in seq(0, 2)){
-              
-              redemptions_train_arima = try(Arima(redemptions_train, order=c(a,b,c), seasonal=c(d,e,f)))
-              f_redemptions_train_arima = try(redemptions_train_arima %>% forecast(h=6))
-              z = try(accuracy(f_redemptions_train_arima, redemptions_test))
-              training_rmse = try(z[3])
-              test_rmse = try(z[4])
-              bic = try(redemptions_train_arima[16])
-              
-              #write to the df
-              df[i,'a']=a
-              df[i,'b']=b
-              df[i,'c']=c
-              df[i,'d']=d
-              df[i,'e']=e
-              df[i,'f']=f
-              df[i,'training']=training_rmse
-              df[i,'test']=test_rmse
-              df[i, 'diff']=training_rmse-test_rmse
-              df[i,'bic']=bic
-              
-              i=i+1 #increment the row
-              
-              #reset the variables
-              redemptions_train_arima=NULL 
-              f_redemptions_train_arima=NULL
-              z=NULL
-              training_rmse=NULL
-              test_rmse=NULL
-              bic=NULL
-              
+arima_picker_function = function(series_train, series_test, horizon){
+  
+  #initiate a df
+  df = data.frame(a=NA, b=NA, c=NA, d=NA, e=NA, f=NA,
+                  training=NA,
+                  test=NA,
+                  diff=NA,
+                  bic = NA)
+  f_list = list()
+  i=1 #df row counter
+  
+  system.time(
+    for (a in seq(0, 2)){
+      for (b in seq(0, 1)){
+        for (c in seq(0, 2)){
+          for (d in seq(0, 2)){
+            for (e in seq(0, 1)){
+              for (f in seq(0, 2)){
+                
+                series_train_arima = try(Arima(series_train, order=c(a,b,c), seasonal=c(d,e,f)))
+                bic = try(series_train_arima[16])
+                
+                f_series_train_arima = try(series_train_arima %>% forecast(h=horizon))
+                z = try(accuracy(f_series_train_arima, series_test))
+                training_rmse = try(z[3])
+                test_rmse = try(z[4])
+                
+                #write to the df
+                df[i,'a']=a
+                df[i,'b']=b
+                df[i,'c']=c
+                df[i,'d']=d
+                df[i,'e']=e
+                df[i,'f']=f
+                df[i,'training']=training_rmse
+                df[i,'test']=test_rmse
+                df[i,'bic']=bic
+                
+                i=i+1 #increment the row
+                
+                #reset the variables
+                series_train_arima=NULL 
+                f_series_train_arima=NULL
+                z=NULL
+                training_rmse=NULL
+                test_rmse=NULL
+                bic=NULL
+                
+              }
             }
           }
         }
       }
     }
-  }
-)
+  )
+    
+  df_sorted = df[order(df$bic, decreasing="False"),]
+  p=df_sorted[1,"a"]
+  d=df_sorted[1,"b"]
+  q=df_sorted[1,"c"]
+  P=df_sorted[1,"d"]
+  D=df_sorted[1,"e"]
+  Q=df_sorted[1,"f"]
   
-df_sorted = df[order(df$bic, decreasing="False"),]
-p=df_sorted[1,"a"]
-d=df_sorted[1,"b"]
-q=df_sorted[1,"c"]
-P=df_sorted[1,"d"]
-D=df_sorted[1,"e"]
-Q=df_sorted[1,"f"]
+  f_list = list(p, d, q, P, D, Q)
+  return(f_list)
+  
+}
 
-p;d;q;P;D;Q
-df_sorted[1,"training"]
-df_sorted[1,"test"]
-df_sorted[1,"bic"]
-head(df_sorted)
