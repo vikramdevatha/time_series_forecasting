@@ -1,0 +1,90 @@
+#run the forecasting function first
+#use this code snippet to pass the TS datasets into the forecast function, and parse the results
+
+# no_lags = 24
+# confidence = 2/sqrt(length(sector_df))
+#
+# #get value of p for ARIMA model
+# temp = pacf(sector_ts, lag.max=no_lags, ylab="correlation"); temp$pacf
+# first_lag = min(which(abs(temp$acf) > confidence)) #determine the periods where it first becomes significant
+# if (first_lag>24) {first_lag=first_lag-(no_lags+1)}; p=first_lag; p
+# 
+# #get value of q for ARIMA model
+# temp = acf(sector_ts, lag.max=no_lags, ylab="correlation"); temp$acf
+# first_lag = min(which(abs(temp$acf) > confidence)) #determine the periods where it first becomes significant
+# if (first_lag>24) {first_lag=first_lag-(no_lags+1)}; q=first_lag
+
+
+#set counter
+#i=3 #first column is month
+
+start_year = 2002; start_month = 1
+end_year = 2019; end_month = 5
+train_end_year = end_year-1; train_end_month = 5
+test_start_year = end_year-1; test_start_month = 6
+no_forecasts = 12
+
+sector_ts = ts(sector_df[,i], start = c(start_year, start_month), end = c(end_year, end_month), frequency = 12)
+sector_train = window(sector_ts, end = c(train_end_year, train_end_month))
+sector_test = window(sector_ts, start = c(test_start_year, test_start_month))
+
+#plot the time series
+autoplot(sector_ts) + geom_smooth() + labs(title = colnames(sector_df)[i], y = "USD, m",x = NULL);
+acf(sector_ts, plot=TRUE, main="", xlab=paste0("Sector sales in ", colnames(sector_df)[i]), lwd=2) #check for stationarity, d=0
+acf(diff(sector_ts, lag=1), plot=TRUE, main="", xlab=paste0("Sector sales in ", colnames(sector_df)[i], " (differenced)"), lwd=2) #d=1
+acf(diff(sector_ts, lag=12), plot=TRUE, main="", xlab=paste0("Sector sales in ", colnames(sector_df)[i], " (seasonal differenced)"), lwd=2) #check if series has become stationary with first differences seasonal, D=1
+
+#FTI sales in the same sector
+fti_ts = ts(fti_df[,i], start = c(start_year, start_month), end = c(end_year, end_month), frequency = 12)
+fti_train = window(fti_ts, end = c(train_end_year, train_end_month))
+fti_test = window(fti_ts, start = c(test_start_year, test_start_month))
+
+acf(fti_ts, plot=TRUE, main = "", xlab=paste0("FTI sales in ", colnames(fti_df)[i]), lwd=2); #check for stationarity, d=0
+acf(diff(fti_ts, lag=1), plot=TRUE, main="", xlab=paste0("FTI sales in ", colnames(fti_df)[i], " (differenced)"), lwd=2); #check if series has become stationary with first differences, d=1
+
+#correlation between the two series
+ccf_object = ccf(sector_ts, fti_ts, lag=12, main = "" , xlab="Years (FTI lags if < 0 and leads if > 0)", ylab="correlation", lwd=2)
+ccf_object = ccf(diff(sector_ts, lag=1), diff(fti_ts, lag=1), lag=12, main = "" , xlab="Years (FTI lags if < 0 and leads if > 0)", ylab="correlation of differenced series", lwd=2)
+
+#pick values for arima
+p=d=q=P=D=Q=0 #reset values
+arima_list=arima_picker_function(sector_train, sector_test, no_forecasts) #pick the right values
+arima_list = unlist(arima_list)
+p = arima_list[1]; d = arima_list[2]; q = arima_list[3]
+P = arima_list[4]; D = arima_list[5]; Q = arima_list[6]
+
+#forecast using the function
+z = forecast_function(start_year, sector_train, sector_test, sector_ts, no_forecasts, p,d,q,P,D,Q)
+colnames(sector_df)[i]
+
+#extracting arima results
+arima_summary=as.data.frame(z[1]) #test df
+arima_full_summary=as.data.frame(z[8]) #forecast df
+arima_df = data.frame(arima_summary[,1], arima_full_summary[,1]) #combining test and forecast df
+
+regexp <- "[[:digit:]]+" #define the function
+x = str_extract(colnames(arima_summary[1]), regexp) #extract the values of pdq
+y = str_extract(colnames(arima_full_summary[1]), regexp)
+colnames(arima_df)= c(paste0("arima test ", x), paste0("arima forecast ", y)) #rename the columns
+
+#extracting Snaive results
+snaive_summary=as.data.frame(z[9]) #test df
+snaive_full_summary=as.data.frame(z[15]) #forecast df
+snaive_df = data.frame(snaive_summary[,1], snaive_full_summary[,1]) #combining test and forecast df
+colnames(snaive_df) = c("snaive test", "snaive forecast") #rename the columns
+
+#extracting STL results
+stl_summary=as.data.frame(z[16]) #test df
+stl_full_summary=as.data.frame(z[22]) #forecast df
+stl_df = data.frame(stl_summary[,1], stl_full_summary[,1]) #combining test and forecast df
+colnames(stl_df) = c("stl test", "stl forecast") #rename the columns
+
+#extracting STL results
+HW_triple_summary=as.data.frame(z[23]) #test df
+HW_triple_full_summary=as.data.frame(z[29]) #forecast df
+HW_triple_df = data.frame(HW_triple_summary[,1], HW_triple_full_summary[,1]) #combining test and forecast df
+colnames(HW_triple_df) = c("HW_triple test", "HW_triple forecast") #rename the columns
+
+test_forecast_df = cbind(arima_df, snaive_df, stl_df, HW_triple_df)
+
+i=i+1 #increase counter
