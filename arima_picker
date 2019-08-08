@@ -1,11 +1,18 @@
+#Function for picking the best values for ARIMA models
+
+# Usage in local R: 
+#   if (!require(RCurl)) {install.packages("RCurl")}; library(RCurl)
+#   arima_picker_function = getURL("insert raw GIT URL", ssl.verifypeer=FALSE)
+#   eval(parse(text=arima_picker_function))
+#   arima_picker_function = function(series_train, series_test, horizon)
+
+
 arima_picker_function = function(series_train, series_test, horizon){
   
   #initiate a df
-  df = data.frame(a=NA, b=NA, c=NA, d=NA, e=NA, f=NA,
-                  training=NA,
-                  test=NA,
-                  diff=NA,
-                  bic = NA)
+  p=d=q=P=D=Q=0 #reset values
+  
+  df = data.frame(a=NA, b=NA, c=NA, d=NA, e=NA, f=NA, training=NA, test=NA, diff=NA, bic = NA)
   f_list = list()
   i=1 #df row counter
   
@@ -66,4 +73,3 @@ arima_picker_function = function(series_train, series_test, horizon){
   return(f_list)
   
 }
-
