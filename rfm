@@ -1,8 +1,8 @@
-rfm = function(dataset){
-
-  #Function to make RFM of advisors from DMI's Australia report
-
+rfm = function(dataset, start_date, end_date){
+  
   library(dplyr)
+  
+  dataset = dataset %>% dplyr::filter(Platform.Report.Date > start_date & Platform.Report.Date < end_date) 
   
   #FUA
   fua = dataset %>%
