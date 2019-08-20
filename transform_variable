@@ -1,0 +1,35 @@
+transform_variable = function(input_df, variable){
+  
+  library(fastDummies)
+  
+  #Boxplots
+  
+  par(mfrow=c(1,4))
+  as_is = boxplot(input_df[,variable], col="light grey", ylab="USD, m, As is")
+  log_plot = boxplot(log(input_df[,variable]), col="light grey", ylab="USD, m, Log")
+  square_plot = boxplot((input_df[,variable])^2, col="light grey", ylab="USD, m, Square")
+  sqrt_plot = boxplot((input_df[,variable])^0.5, col="light grey", ylab="USD, m, Square Root")
+  title(colnames(input_df)[variable], line=-32, outer=TRUE)
+  #text(0.5, 0.5, main=colnames(input_df)[variable], cex=2, font=2)
+  par(mfrow=c(1,1))
+  
+  #prepare df for regression
+  t = seq(from=1, to=length(input_df[,variable]), by=1)
+  temp_df = data.frame("date"=input_df$Month,
+                  "month"=format(input_df$Month,"%B"),
+                  "trend"=t,
+                  "trend_square"=t^2,
+                  "as_is"=input_df[,variable],
+                  "log"=log(input_df[,variable]),
+                  "square"=input_df[,variable]^2,
+                  "square_root"=input_df[,variable]^0.5,
+                  stringsAsFactors = TRUE)
+  
+  #make dummy variables
+  df_dummy = dummy_cols(temp_df, select_columns = "month")
+  colnames(df_dummy)[1] = colnames(input_df)[variable]
+  
+  return_list = list(df_dummy)
+  return(return_list)
+  
+}
