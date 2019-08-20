@@ -1,0 +1,40 @@
+regression_function = function(df_dummy, transformation){
+  
+  dep_variable = NULL
+  if(transformation=="as is"){dep_variable=df_dummy[[1]]$as_is}
+  if(transformation=="log"){dep_variable=df_dummy[[1]]$log}
+  if(transformation=="square"){dep_variable=df_dummy[[1]]$square}
+  if(transformation=="sqrt"){dep_variable=df_dummy[[1]]$square_root}
+
+  #reference month is Jan
+  model_1 = lm(dep_variable ~ trend + trend_square + month_February + month_March + month_April + month_May + month_June + month_July + month_August + month_September + month_October + month_November + month_December, data=df_dummy[[1]])
+  model_summary = summary(model_1)
+  
+  reg_df = as.data.frame(summary(model_1)$coefficients)
+  reg_df$Regressors = row.names(reg_df)
+    std_betas = data.frame(QuantPsyc::lm.beta(model_1)) #Standardized betas
+  colnames(std_betas) = "Std Betas"
+  std_betas$Regressors = row.names(std_betas)
+  reg_df = left_join(reg_df, std_betas, by="Regressors")
+  reg_df = reg_df[, c(5, 1, 2, 3, 4, 6)]
+  colnames(reg_df)[1] = colnames(df_dummy[[1]])
+  
+  ols = olsrr::ols_test_breusch_pagan(model_1) #test homoscedasticity
+  ols_p = ols$p #H0: variances are constant
+  
+  par(mfrow=c(2,2))
+  residual_fitted = plot(model_1, which=1, col=c("blue"), sub="Residual vs Fitted")
+  qq_plot = plot(model_1, which=2, col=c("red"), sub="QQ Plot")
+  residuals_x_plot = plot(model_1, which=3, col=c("blue"), sub="Independance of Residuals")
+  influential_plot = plot(model_1, which=5, col=c("blue"), sub="Influential Plot")
+  title(colnames(df_dummy[[1]][1]), line=-27, outer=TRUE)
+  par(mfrow=c(1,1))
+  
+  name = colnames(df_dummy[[1]][1])
+  
+  return_list = list(name, model_summary, reg_df, paste0("p=",ols_p),
+                     residual_fitted, qq_plot, residuals_x_plot, influential_plot)
+  
+  return(return_list)
+
+}
