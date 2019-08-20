@@ -1,0 +1,39 @@
+check_correlation = function(df1){
+  
+  sector_ts = split_dataset(df1, 2)[[1]]
+  fti1_ts = split_dataset(df1, 3)[[1]]
+  fti2_ts = split_dataset(df1, 4)[[1]]
+  
+  #plot the sector
+  trend_plot_sector = autoplot(sector_ts) + geom_smooth() + labs(title = colnames(df1)[2], y = "USD, m",x = NULL)
+  trend_plot_ft1 = autoplot(fti1_ts) + geom_smooth() + labs(title = colnames(df1)[3], y = "USD, m",x = NULL)
+  trend_plot_ft2 = autoplot(fti2_ts) + geom_smooth() + labs(title = colnames(df1)[4], y = "USD, m",x = NULL)
+  
+  par(mfrow=c(2,2))
+  acf(sector_ts, plot=TRUE, main="", xlab="As is", lwd=2) 
+  acf(diff(sector_ts), lag=1, plot=TRUE, main="", xlab="Differenced", lwd=2) #d=1
+  acf(diff(sector_ts), lag=12, plot=TRUE, main="", xlab="Seasonal differenced", lwd=2)
+  title(colnames(df1)[2], line=-27, outer=TRUE)
+  
+  par(mfrow=c(2,2))
+  acf(fti1_ts, plot=TRUE, main = "", xlab="FTI, as is", lwd=2) #check is stationary, d=0
+  acf(fti1_ts, lag=1, plot=TRUE, main="", xlab="FTI differenced", lwd=2)
+  title(colnames(df1)[3], line=-16, outer=TRUE)
+  
+  #correlation between sector and FTI1
+  par(mfrow=c(2,2))
+  ccf(sector_ts, fti1_ts, lag=12, main = "" , xlab="Years (FTI lags if < 0 and leads if > 0)", ylab="correlation", lwd=2)
+  ccf(diff(sector_ts, lag=1), diff(fti1_ts, lag=1), lag=12, main = "" , xlab="Years (FTI lags if < 0 and leads if > 0)", ylab="corr differenced series", lwd=2)
+  
+  title(paste(colnames(df1)[2], "with\n", colnames(df1)[3]), line=-16, outer=TRUE)
+
+  par(mfrow=c(2,2))
+  ccf(sector_ts, fti2_ts, lag=12, main = "" , xlab="Years (FTI lags if < 0 and leads if > 0)", ylab="correlation", lwd=2)
+  ccf(diff(sector_ts, lag=1), diff(fti2_ts, lag=1), lag=12, main = "" , xlab="Years (FTI lags if < 0 and leads if > 0)", ylab="corr differenced series", lwd=2)
+  title(paste(colnames(df1)[2], "with\n", colnames(df1)[4]), line=-16, outer=TRUE)
+  par(mfrow=c(1,1))
+  
+  return_list = list(trend_plot_sector, trend_plot_ft1, trend_plot_ft2)
+  return(return_list)
+  
+}
