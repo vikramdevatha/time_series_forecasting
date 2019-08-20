@@ -1,20 +1,34 @@
-forecast_function = function(series_train, series_test, horizon, p, d, q, P, D, Q){
-  
+forecast_function = function(start_year, series_full, series_train, series_test, horizon){
   f_list = list()
   
-  #naive forecasts
-  f_naive = naive(series_train, horizon) 
-  f_naive_summary = summary(f_naive)
-  f_naive_autoplot = autoplot(f_naive, size=1.0) + geom_smooth() + geom_line(size=1.0) +
-    labs(title="Naive forecasts", y = "USD, m", x = NULL) +
-    autolayer(f_naive, series = "Forecasted value", size=1.0) +
-    autolayer(series_test, series = "Actual value", size=1.0) +
-    guides(colour=guide_legend(title="Forecast"))
+  #pick values for arima
+  arima_list = arima_picker(series_train, series_test, horizon)
+  arima_list = unlist(arima_list)
+  p = arima_list[1]; d = arima_list[2]; q = arima_list[3]
+  P = arima_list[4]; D = arima_list[5]; Q = arima_list[6]
   
-  f_naive_residuals = checkresiduals(f_naive)
-  f_naive_accuracy = accuracy(f_naive, series_test)
-  naive_train_rmse = f_naive_accuracy[3]
-  naive_test_rmse = f_naive_accuracy[4]
+  #ARIMA forecast
+  series_train_arima = Arima(series_train, order=c(p, d, q), seasonal=c(P, D, Q))
+  f_arima = series_train_arima %>% forecast(h=no_forecasts) #forecasts
+  f_arima_residuals = checkresiduals(f_arima)
+  f_arima_summary = summary(f_arima)
+  colnames(f_arima_summary) = c(paste0("Arima ",p,d,q,P,D,Q), "Lo 80", "Hi 80", "Lo 95", "Hi 95")
+  f_arima_accuracy = accuracy(f_arima, series_test)
+  arima_train_rmse = f_arima_accuracy[3]
+  arima_test_rmse = f_arima_accuracy[4]
+  f_cor_arima = cor(f_arima_summary$'Arima', series_test)
+
+  f_arima_autoplot = series_train_arima %>% forecast(h=no_forecasts) %>%
+    autoplot(size=1.0) + ylab("USD m") + xlab("") +
+    ggtitle("ARIMA forecasts") +
+    autolayer(f_arima, series="Forecast", size=1.0) +
+    autolayer(series_test, series="Actual value Test", size=1.0)
+  
+  ##forecast with ARIMA on full data
+  series_full_arima = Arima(series_full, order=c(p, d, q), seasonal=c(P, D, Q))
+  full_arima = series_full_arima %>% forecast(h=no_forecasts) #forecasts
+  full_arima_summary = summary(full_arima)
+  colnames(full_arima_summary) = c(paste0("Arima ",p,d,q,P,D,Q), "Lo 80", "Hi 80", "Lo 95", "Hi 95")
   
   #naive forecasts with seasonality
   f_snaive = snaive(series_train, horizon) 
@@ -29,20 +43,12 @@ forecast_function = function(series_train, series_test, horizon, p, d, q, P, D, 
   snaive_train_rmse = f_snaive_accuracy[3]
   snaive_test_rmse = f_snaive_accuracy[4]
   
-  #drift forecasts
-  f_rwf = rwf(series_train, drift = TRUE, horizon)
-  f_rwf_summary = summary(f_rwf)
-  f_rwf_autoplot = autoplot(f_rwf, size=1.0) + geom_smooth() + geom_line(size=1.0)  +
-    labs(title="Drift forecasts", y = "USD, m", x = NULL) +
-    autolayer(f_rwf, series = "Forecasted value", size=1.0) +
-    autolayer(series_test, series = "Actual value", size=1.0) +
-    guides(colour=guide_legend(title="Forecast"))
-  f_rwf_residuals = checkresiduals(f_rwf)
-  f_rwf_accuracy = accuracy(f_rwf, series_test)
-  rwf_train_rmse = f_rwf_accuracy[3]
-  rwf_test_rmse = f_rwf_accuracy[4]
+  ##forecast with Snaive on full data
+  full_snaive = snaive(series_full, horizon) 
+  full_snaive_summary = summary(full_snaive)
+  colnames(full_snaive_summary) = c("Snaive", "Lo 80", "Hi 80", "Lo 95", "Hi 95")
   
-  #forecast with STL decomposition
+  #STL Forecast
   series_train_decomposed = stl(series_train, s.window=7)
   f_stl = series_train_decomposed %>% forecast(method="naive", h=horizon) #forecasts
   f_stl_residuals = checkresiduals(f_stl)
@@ -56,33 +62,11 @@ forecast_function = function(series_train, series_test, horizon, p, d, q, P, D, 
   stl_train_rmse = f_stl_accuracy[3]
   stl_test_rmse = f_stl_accuracy[4]
   
-  #HW single exponential model (with level only)
-  f_HW_single_fit = HoltWinters(series_train, beta=FALSE, gamma=FALSE)
-  f_HW_single = forecast(f_HW_single_fit, horizon) 
-  f_HW_single_summary = summary(f_HW_single)
-  f_HW_single_autoplot = autoplot(f_HW_single, size=1.0) + geom_smooth() + geom_line(size=1.0) +
-    labs(title="HW Single Exponential forecasts", y = "USD, m", x = NULL) +
-    autolayer(f_HW_single, series = "Forecasted value", size=1.0) +
-    autolayer(series_test, series = "Actual value", size=1.0) +
-    guides(colour=guide_legend(title="Forecast"))
-  f_HW_single_residuals = checkresiduals(f_HW_single)
-  f_HW_single_accuracy = accuracy(f_HW_single, series_test)
-  HW_single_train_rmse = f_HW_single_accuracy[3]
-  HW_single_test_rmse = f_HW_single_accuracy[4]
-  
-  #HW double exponential model (level and trend)
-  f_HW_double_fit = HoltWinters(series_train, gamma=FALSE)
-  f_HW_double = forecast(f_HW_double_fit, horizon)
-  f_HW_double_summary = summary(f_HW_double)
-  f_HW_double_autoplot = autoplot(f_HW_double, size=1.0) + geom_smooth() + geom_line(size=1.0) +
-    labs(title="HW Double Exponential forecasts", y = "USD, m", x = NULL) +
-    autolayer(f_HW_double, series = "Forecasted value", size=1.0) +
-    autolayer(series_test, series = "Actual value", size=1.0) +
-    guides(colour=guide_legend(title="Forecast"))
-  f_HW_double_residuals = checkresiduals(f_HW_double)
-  f_HW_double_accuracy = accuracy(f_HW_double, series_test)
-  HW_double_train_rmse = f_HW_double_accuracy[3]
-  HW_double_test_rmse = f_HW_double_accuracy[4]
+  ##forecast with STL on full data
+  series_full_decomposed = stl(series_full, s.window=7) 
+  full_stl = series_full_decomposed %>% forecast(method="naive", h=horizon) #forecasts
+  full_stl_summary = summary(full_stl)
+  colnames(full_stl_summary) = c("stl", "Lo 80", "Hi 80", "Lo 95", "Hi 95")
   
   #HW triple exponential model (level, trend and seasonality)
   f_HW_triple_fit = HoltWinters(series_train)
@@ -98,41 +82,28 @@ forecast_function = function(series_train, series_test, horizon, p, d, q, P, D, 
   HW_triple_train_rmse = f_HW_triple_accuracy[3]
   HW_triple_test_rmse = f_HW_triple_accuracy[4]
   
-  #ARIMA forecast
-  series_train_arima = Arima(series_train, order=c(p, d, q), seasonal=c(P, D, Q))
-  f_arima = series_train_arima %>% forecast(h=no_forecasts) #forecasts
-  f_arima_residuals = checkresiduals(f_arima)
-  f_arima_summary = summary(f_arima)
-  f_arima_accuracy = accuracy(f_arima, series_test)
-  arima_train_rmse = f_arima_accuracy[3]
-  arima_test_rmse = f_arima_accuracy[4]
-
-  f_arima_autoplot = series_train_arima %>% forecast(h=no_forecasts) %>% 
-    autoplot(size=1.0) + ylab("USD m") + xlab("") +
-    ggtitle("ARIMA forecasts") +
-    autolayer(f_arima, series="Forecast", size=1.0) +
-    autolayer(series_test, series="Actual value Test", size=1.0)
+  ##forecast with HW Triple on full data
+  full_HW_triple_fit = HoltWinters(series_full)
+  full_HW_triple = forecast(full_HW_triple_fit, horizon)
+  full_HW_triple_summary = summary(full_HW_triple)
   
-  f_list = list("naive_summary"=data.frame(f_naive_summary), 
-                "naive_autoplot"=f_naive_autoplot, 
-                "naive_residuals"=f_naive_residuals, 
-                "naive_accuracy"=f_naive_accuracy,
-                "naive_train_rmse" = naive_train_rmse,
-                "naive_test_rmse" = naive_test_rmse,
-                
+  f_list = list(
+                "arima_summary" = f_arima_summary, 
+                "arima_autoplot" = f_arima_autoplot, 
+                "arima_residuals" = f_arima_residuals, 
+                "arima_accuracy" = f_arima_accuracy,
+                "arima_train_rmse" = arima_train_rmse,
+                "arima_test_rmse" = arima_test_rmse,
+                "arima cor" = f_cor_arima,
+                "arima_full_summary"=full_arima_summary,
+  
                 "snaive_summary"=f_snaive_summary, 
                 "snaive_autoplot"=f_snaive_autoplot, 
                 "snaive_residuals"=f_snaive_residuals, 
                 "snaive_accuracy"=f_snaive_accuracy, 
                 "snaive_train_rmse" = snaive_train_rmse,
                 "snaive_test_rmse" = snaive_test_rmse,
-                
-                "drift_summary"= f_rwf_summary, 
-                "drift_autoplot"=f_rwf_autoplot, 
-                "drift_residuals"=f_rwf_residuals, 
-                "drift_accuracy"=f_rwf_accuracy,
-                "rwf_train_rmse" = rwf_train_rmse,
-                "rwf_test_rmse" = rwf_test_rmse,
+                "snaive_full_summary"=full_snaive_summary,
                 
                 "stl_summary"=f_stl_summary, 
                 "stl_autoplot"=f_stl_autoplot, 
@@ -140,20 +111,7 @@ forecast_function = function(series_train, series_test, horizon, p, d, q, P, D, 
                 "stl_accuracy"=f_stl_accuracy,
                 "stl_train_rmse" = stl_train_rmse,
                 "stl_test_rmse" = stl_test_rmse,
-                
-                "HW_single_summary"=f_HW_single_summary, 
-                "HW_single_autoplot"=f_HW_single_autoplot, 
-                "HW_single_residuals"=f_HW_single_residuals, 
-                "HW_single_accuracy"=f_HW_single_accuracy,
-                "HW_single_train_rmse" = HW_single_train_rmse,
-                "HW_single_test_rmse" = HW_single_test_rmse,
-                
-                "HW_double_summary"=f_HW_double_summary, 
-                "HW_double_autoplot"=f_HW_double_autoplot, 
-                "HW_double_residuals"=f_HW_double_residuals, 
-                "HW_double_accuracy"=f_HW_double_accuracy,
-                "HW_double_train_rmse" = HW_double_train_rmse,
-                "HW_double_test_rmse" = HW_double_test_rmse,
+                "stl_full_summary"=full_stl_summary,
                 
                 "HW_triple_summary"=f_HW_triple_summary, 
                 "HW_triple_autoplot"=f_HW_triple_autoplot, 
@@ -161,13 +119,7 @@ forecast_function = function(series_train, series_test, horizon, p, d, q, P, D, 
                 "HW_triple_accuracy"=f_HW_triple_accuracy,
                 "HW_triple_train_rmse" = HW_triple_train_rmse,
                 "HW_triple_test_rmse" = HW_triple_test_rmse,
-  
-                "arima_summary"=f_arima_summary, 
-                "arima_autoplot"=f_arima_autoplot, 
-                "arima_residuals"=f_arima_residuals, 
-                "arima_accuracy"=f_arima_accuracy,
-                "arima_train_rmse" = arima_train_rmse,
-                "arima_test_rmse" = arima_test_rmse)
+                "HW_triple_full_summary"=full_HW_triple_summary)
   
   return(f_list)
 }
