@@ -1,0 +1,38 @@
+process_lipper_data = function(path, file, country, col1, col2){
+  
+  return_list = list()
+  
+  lipper_country = read_csv(paste0(path, file), col_names = TRUE, skip=12)
+  lipper_country = lipper_country[-nrow(lipper_country),] #remove last total row
+  
+  #sector gross sales
+  sector_gross_country = lipper_country[,grepl(col1 ,names(lipper_country))]
+  temp = as.data.frame(t(sector_gross_country[,-1])) #transpose the df
+  colnames(temp) = paste(sector_gross_country$`Fund Sector`, "Gross", country, sep=", ") #name the columns
+  sector_gross_country = temp
+  sector_gross_country$Month = seq(as.Date(start_date),by = 'month', len = nrow(sector_gross_country)) #add month
+  sector_gross_country = sector_gross_country[,c(ncol(sector_gross_country), 1:ncol(sector_gross_country)-1)]#rearrange
+  rownames(sector_gross_country) = NULL #remove row names
+  
+  #sector net sales
+  sector_net_country = lipper_country[,grepl(col2 ,names(lipper_country))]
+  temp = as.data.frame(t(sector_net_country[,-1])) #transpose the df
+  colnames(temp) = paste(sector_net_country$`Fund Sector`, "Net", country, sep=", ") #name the columns
+  sector_net_country = temp
+  sector_net_country$Month = seq(as.Date(start_date),by = 'month', len = nrow(sector_net_country)) #add month
+  sector_net_country = sector_net_country[,c(ncol(sector_net_country), 1:ncol(sector_net_country)-1)]#rearrange
+  rownames(sector_net_country) = NULL #remove row names
+  
+  #sector redemptions
+  redemptions = sector_gross_country[,2:ncol(sector_gross_country)] - sector_net_country[,2:ncol(sector_net_country)]
+  colnames(redemptions) = sub(pattern = "Gross", replacement = "Redemptions", x = colnames(redemptions))
+  sector_redemptions_country = data.frame("Month"=sector_gross_country$Month)
+  sector_redemptions_country = cbind(sector_redemptions_country, redemptions)
+  
+  return_list = list("gross"=sector_gross_country, 
+                     "net"=sector_net_country,
+                     "redemptions"=sector_redemptions_country)
+  
+  return(return_list)
+  
+}
