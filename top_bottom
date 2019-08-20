@@ -1,0 +1,24 @@
+top_bottom = function(df, number, name){
+  
+  library(dplyr)
+  
+  x = df %>% 
+  dplyr::select(3:ncol(df)-1) %>% 
+  replace(is.na(.), 0) %>%
+  summarise_all(funs(sum)) %>% t() %>% as.data.frame()
+
+  colnames(x) = name
+  x$Sector = rownames(x)
+  rownames(x) = NULL
+  x = x[,c(2,1)]
+  top_sectors = x %>% arrange(desc(x[,2])) %>% head(number)
+  colnames(top_sectors)[1] = "Top Sectors"
+  bottom_sectors = x %>% arrange(desc(x[,2])) %>% tail(number)
+  colnames(bottom_sectors)[1] = "Bottom Sectors"
+  
+  top_bottom = list(top = top_sectors,
+                    bottom = bottom_sectors)
+  
+  return(top_bottom)
+
+}
