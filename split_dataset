@@ -1,0 +1,9 @@
+split_dataset = function(df, colno){
+  
+  ts = ts(df[,colno], start = c(start_year, start_month), end = c(end_year, end_month), frequency = no_forecasts)
+  train = window(ts, end = c(train_end_year, train_end_month))
+  test = window(ts, start = c(test_start_year, test_start_month))
+  
+  return_list = list(ts, train, test)
+  return(return_list)
+}
