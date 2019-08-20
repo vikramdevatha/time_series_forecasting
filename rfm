@@ -1,0 +1,48 @@
+rfm = function(dataset){
+
+  #Function to make RFM of advisors from DMI's Australia report
+
+  library(dplyr)
+  
+  #FUA
+  fua = dataset %>%
+    group_by(`Adviser.Name`, `PSN.Financial`, `Record.Owner.Name`) %>% 
+    summarise(Platforms = length(unique(`Platform.Name`)), Funds = length(unique(`Product.Name`)), FUA = sum(`Product.Total.FUA`))
+  
+  #Avg inflows per month
+  inflows_per_month = dataset %>% 
+    group_by(`Adviser.Name`, `PSN.Financial`, `Record.Owner.Name`) %>% 
+    summarise('Total.Inflows' = sum(`Product.In.Flow`), 
+              'Avg.Inflows.per.month'= round(sum(`Product.In.Flow`)/12,2))
+  
+  #Last positive inflow
+  temp = dataset %>% 
+    dplyr::filter(`Product.In.Flow` > 0) %>% 
+    arrange(`Platform.Report.Date`) %>%
+    group_by(`Adviser.Name`, `PSN.Financial`, `Record.Owner.Name`) %>% 
+    top_n(1, wt=`Platform.Report.Date`)
+  
+  temp$'Latest.month' = max(dataset$Platform.Report.Date)
+  temp$'Latest.month' = as.Date(temp$`Latest.month`, "%Y-%m-%d")
+  temp$Days = difftime(time1 = temp$`Latest.month`, time2 = temp$`Platform.Report.Date`, units="days")
+  temp$Months.since.sale = as.numeric(round(temp$Days/30))
+  months_since_sale = temp %>% select("Adviser.Name", "PSN.Financial", "Record.Owner.Name", "Months.since.sale" )
+  
+  #number of months that the advisors had sales
+  months_with_sales = dataset %>%
+    dplyr::filter(`Product.In.Flow` > 0) %>% 
+    arrange(`Adviser.Name`) %>% select("Adviser.Name", "PSN.Financial", "Record.Owner.Name", "Platform.Report.Date") %>%
+    distinct() %>% 
+    add_count(`Adviser.Name`) %>%
+    rename("Months.with.sales" = n) %>% 
+    select("Adviser.Name", "PSN.Financial", "Record.Owner.Name", "Months.with.sales")
+  
+  #Left join all the df
+  rfm_df = left_join(fua, inflows_per_month, by = c("Adviser.Name", "PSN.Financial", "Record.Owner.Name")) %>% 
+    left_join(months_since_sale, by = c("Adviser.Name", "PSN.Financial", "Record.Owner.Name")) %>% 
+    left_join(months_with_sales, by = c("Adviser.Name", "PSN.Financial", "Record.Owner.Name"))
+  
+  rfm_df = rfm_df %>% unique()
+  return(rfm_df)
+  
+}
