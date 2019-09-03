@@ -31,11 +31,10 @@ rfm = function(dataset, start_date, end_date){
   #number of months that the advisors had sales
   months_with_sales = dataset %>%
     dplyr::filter(`Product.In.Flow` > 0) %>% 
-    arrange(`Adviser.Name`) %>% select("Adviser.Name", "PSN.Financial", "Record.Owner.Name", "Platform.Report.Date") %>%
+    arrange(`Adviser.Name`) %>% select("Adviser.Name", "PSN.Financial", "Platform.Report.Date") %>%
     distinct() %>% 
     add_count(`Adviser.Name`) %>%
-    rename("Months.with.sales" = n) %>% 
-    select("Adviser.Name", "PSN.Financial", "Record.Owner.Name", "Months.with.sales")
+    rename("Months.with.sales" = n) 
   
   #Left join all the df
   rfm_df = left_join(fua, inflows_per_month, by = c("Adviser.Name", "PSN.Financial", "Record.Owner.Name")) %>% 
