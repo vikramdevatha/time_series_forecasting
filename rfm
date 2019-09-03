@@ -37,7 +37,8 @@ rfm = function(dataset, start_date, end_date){
     rename("Months.with.sales" = n) 
   
   #Left join all the df
-  rfm_df = left_join(fua, inflows_per_month, by = c("Adviser.Name", "PSN.Financial")) %>% 
+  rfm_df = left_join(dataset, fua, by = c("Adviser.Name", "PSN.Financial")) %>%
+    left_join(inflows_per_month, by = c("Adviser.Name", "PSN.Financial")) %>% 
     left_join(months_since_sale, by = c("Adviser.Name", "PSN.Financial")) %>% 
     left_join(months_with_sales, by = c("Adviser.Name", "PSN.Financial"))
   
